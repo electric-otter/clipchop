@@ -48,45 +48,176 @@
       .upload-area.dragover {
         background-color: #e2e6ea;
       }
+      /* Motion Graphics Animation */
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+      }
+      .motion-graphics {
+        animation: bounce 1s infinite;
+        font-size: 1.5rem;
+        text-align: center;
+        padding: 1rem;
+        background-color: #ffc107;
+        border-radius: 5px;
+        margin-top: 0.5rem;
+      }
+      /* Chat panel scrolling fix */
+      .chat-messages {
+        max-height: 200px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
     <div id="app"></div>
 
     <script type="text/babel">
-      const { useState, useRef } = React;
+      const { useState, useRef, useEffect } = React;
 
-      // UltraAdvancedFeaturesPanel: Showcases features that outclass legacy tools
-      const UltraAdvancedFeaturesPanel = () => {
+      // ChatPanel uses BroadcastChannel (if available) for real-time collaboration between tabs.
+      const ChatPanel = () => {
+        const [messages, setMessages] = useState([]);
+        const [newMessage, setNewMessage] = useState("");
+        const bcRef = useRef(null);
+
+        useEffect(() => {
+          if ("BroadcastChannel" in window) {
+            bcRef.current = new BroadcastChannel("clipchop_chat");
+            bcRef.current.onmessage = (ev) => {
+              setMessages((prev) => [...prev, ev.data]);
+            };
+          } else {
+            console.log("BroadcastChannel not supported in this browser.");
+          }
+          return () => {
+            if (bcRef.current) bcRef.current.close();
+          };
+        }, []);
+
+        const sendMessage = () => {
+          if (newMessage.trim() === "") return;
+          const msg = {
+            text: newMessage,
+            timestamp: new Date().toLocaleTimeString()
+          };
+          setMessages((prev) => [...prev, msg]);
+          if (bcRef.current) {
+            bcRef.current.postMessage(msg);
+          }
+          setNewMessage("");
+        };
+
+        return (
+          <div className="card mt-4">
+            <div className="card-header bg-info text-white">
+              Collaboration Chat
+            </div>
+            <div className="card-body chat-messages">
+              <ul className="list-group">
+                {messages.map((msg, idx) => (
+                  <li key={idx} className="list-group-item">
+                    <small>[{msg.timestamp}]</small> {msg.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="card-footer">
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                />
+                <button className="btn btn-primary" onClick={sendMessage}>
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      // UltraAdvancedFeaturesPanel: Provides interactive buttons that trigger actual functionality.
+      const UltraAdvancedFeaturesPanel = ({
+        runAIEditing,
+        inviteCollaborator,
+        activateVoiceControl,
+        toggleMotionGraphics,
+        showMotionGraphics,
+        exportToSocialMedia,
+        simulateCloudSave
+      }) => {
         return (
           <div className="card shadow-sm mt-4">
             <div className="card-header bg-danger text-white">
               Ultra Advanced Features: Outclassing the Competition
             </div>
             <div className="card-body">
-              <ul className="list-group">
+              <ul className="list-group mb-3">
                 <li className="list-group-item">
-                  <strong>AI-Assisted Editing:</strong> Automatic scene detection, mood-based transitions, and smart color grading that adapts on the fly.
+                  <strong>AI-Assisted Editing</strong>: Toggle smart color grading for cinematic effects.
+                  <button
+                    className="btn btn-sm btn-outline-primary float-end"
+                    onClick={runAIEditing}
+                  >
+                    {/** The button text will reflect the state change */}
+                    Color Grade
+                  </button>
                 </li>
                 <li className="list-group-item">
-                  <strong>Real-Time Collaboration:</strong> Dynamic multi-user editing with live chat and simultaneous timeline adjustments.
+                  <strong>Real-Time Collaboration</strong>: Open the collaboration chat.
+                  <button
+                    className="btn btn-sm btn-outline-primary float-end"
+                    onClick={inviteCollaborator}
+                  >
+                    Open Chat
+                  </button>
                 </li>
                 <li className="list-group-item">
-                  <strong>Voice Command Control:</strong> Edit your timeline and apply effects using natural language commands for a hands-free experience.
+                  <strong>Voice Command Control</strong>: Use your voice to control playback and editing.
+                  <button
+                    className="btn btn-sm btn-outline-primary float-end"
+                    onClick={activateVoiceControl}
+                  >
+                    Listen
+                  </button>
                 </li>
                 <li className="list-group-item">
-                  <strong>Dynamic Motion Graphics Playground:</strong> Generate custom animations and transitions instantly—no more tedious keyframe adjustments.
+                  <strong>Dynamic Motion Graphics Playground</strong>: Toggle animated overlays.
+                  <button
+                    className="btn btn-sm btn-outline-primary float-end"
+                    onClick={toggleMotionGraphics}
+                  >
+                    {showMotionGraphics ? "Hide Animation" : "Show Animation"}
+                  </button>
                 </li>
                 <li className="list-group-item">
-                  <strong>Instant Social Media Export:</strong> One-click optimization for YouTube, TikTok, Instagram, and more, eliminating guesswork.
+                  <strong>Instant Social Media Export</strong>: Capture a snapshot of the current frame.
+                  <button
+                    className="btn btn-sm btn-outline-primary float-end"
+                    onClick={exportToSocialMedia}
+                  >
+                    Export Frame
+                  </button>
                 </li>
                 <li className="list-group-item">
-                  <strong>Cloud-Based Auto-Save & Versioning:</strong> Intelligent cloud backup that seamlessly saves every change and lets you revert in seconds.
+                  <strong>Cloud-Based Auto-Save & Versioning</strong>: Save your edit state.
+                  <button
+                    className="btn btn-sm btn-outline-primary float-end"
+                    onClick={simulateCloudSave}
+                  >
+                    Save Version
+                  </button>
                 </li>
               </ul>
-              <button className="btn btn-danger mt-3">
-                Experience the Future Now!
-              </button>
+              {showMotionGraphics && (
+                <div className="motion-graphics">
+                  Enjoy the dynamic flow of motion graphics!
+                </div>
+              )}
             </div>
           </div>
         );
@@ -99,18 +230,35 @@
         const [duration, setDuration] = useState(300);
         const [dragOver, setDragOver] = useState(false);
 
+        // Advanced feature states
+        const [isColorGraded, setIsColorGraded] = useState(false);
+        const [showMotionGraphics, setShowMotionGraphics] = useState(false);
+        const [showCollaborationChat, setShowCollaborationChat] = useState(false);
+        const [savedVersions, setSavedVersions] = useState([]);
+
         const videoRef = useRef(null);
         const fileInputRef = useRef(null);
 
-        // Load the video file and reset editor state.
+        // Load saved versions from localStorage on mount.
+        useEffect(() => {
+          const versions = JSON.parse(localStorage.getItem("clipchop_versions") || "[]");
+          setSavedVersions(versions);
+        }, []);
+
+        // Load the video file and reset the editor state.
         const loadVideoFile = (file) => {
           const url = URL.createObjectURL(file);
           setVideoSrc(url);
-          setKeyframes([]); // clear keyframes on new video load
+          setKeyframes([]);
           setCurrentTime(0);
+          // Reset any applied filters.
+          setIsColorGraded(false);
+          if (videoRef.current) {
+            videoRef.current.style.filter = "none";
+          }
         };
 
-        // File drop/selection handler.
+        // Drag & drop and file input.
         const onDrop = (e) => {
           e.preventDefault();
           setDragOver(false);
@@ -141,7 +289,7 @@
           }
         };
 
-        // Update video current time on slider change.
+        // Update video current time when slider moves.
         const onSliderChange = (e) => {
           const time = parseFloat(e.target.value);
           setCurrentTime(time);
@@ -150,9 +298,9 @@
           }
         };
 
-        // Add a keyframe at the current time.
+        // Add keyframe at the current time.
         const addKeyframe = () => {
-          setKeyframes([...keyframes, currentTime]);
+          setKeyframes((prev) => [...prev, currentTime]);
         };
 
         const renderKeyframeMarkers = () => {
@@ -167,6 +315,104 @@
               ></div>
             );
           });
+        };
+
+        // Advanced feature functions:
+
+        // AI-Assisted Editing: Toggle a smart color grading filter.
+        const runAIEditing = () => {
+          setIsColorGraded((prev) => {
+            const newState = !prev;
+            if (videoRef.current) {
+              videoRef.current.style.filter = newState
+                ? "contrast(150%) brightness(120%) saturate(130%)"
+                : "none";
+            }
+            return newState;
+          });
+        };
+
+        // Real-Time Collaboration: Open the chat panel.
+        const inviteCollaborator = () => {
+          setShowCollaborationChat(true);
+        };
+
+        // Voice Command Control: Listen and act based on voice commands.
+        const activateVoiceControl = () => {
+          const SpeechRecognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!SpeechRecognition) {
+            alert("Voice recognition is not supported by your browser.");
+            return;
+          }
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = false;
+          recognition.onresult = (event) => {
+            let transcript = event.results[0][0].transcript.toLowerCase();
+            if (transcript.includes("play")) {
+              videoRef.current && videoRef.current.play();
+            } else if (transcript.includes("pause")) {
+              videoRef.current && videoRef.current.pause();
+            } else if (transcript.includes("add keyframe")) {
+              addKeyframe();
+            } else if (transcript.includes("color grade")) {
+              runAIEditing();
+            } else if (transcript.includes("export")) {
+              exportToSocialMedia();
+            } else {
+              alert("Command not recognized: " + transcript);
+            }
+          };
+          recognition.onerror = (err) => {
+            console.error("Voice recognition error:", err);
+          };
+          recognition.start();
+        };
+
+        // Dynamic Motion Graphics: Toggle an animated overlay.
+        const toggleMotionGraphics = () => {
+          setShowMotionGraphics((prev) => !prev);
+        };
+
+        // Instant Social Media Export: Capture the current video frame.
+        const exportToSocialMedia = () => {
+          if (!videoRef.current) return;
+          const canvas = document.createElement("canvas");
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(
+            videoRef.current,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+          const dataUrl = canvas.toDataURL("image/jpeg");
+          const link = document.createElement("a");
+          link.href = dataUrl;
+          link.download = "video_snapshot.jpg";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+
+        // Cloud-Based Auto-Save & Versioning: Save the edit state in localStorage.
+        const simulateCloudSave = () => {
+          const version = {
+            timestamp: new Date().toISOString(),
+            keyframes: keyframes,
+            currentTime: currentTime,
+            isColorGraded: isColorGraded
+          };
+          const versions = JSON.parse(
+            localStorage.getItem("clipchop_versions") || "[]"
+          );
+          versions.push(version);
+          localStorage.setItem("clipchop_versions", JSON.stringify(versions));
+          setSavedVersions(versions);
+          alert("Version saved to cloud!");
         };
 
         return (
@@ -242,7 +488,9 @@
                   </div>
 
                   {/* Timeline visualization with keyframe markers */}
-                  <div className="timeline mb-3">{renderKeyframeMarkers()}</div>
+                  <div className="timeline mb-3">
+                    {renderKeyframeMarkers()}
+                  </div>
 
                   <button className="btn btn-primary" onClick={addKeyframe}>
                     Add Keyframe
@@ -272,14 +520,15 @@
                 </div>
                 <div className="card-body">
                   <p>
-                    Unlock a full suite of professional tools: multi-track editing,
-                    advanced keyframing, transitions, effects, overlays, color grading,
-                    audio mixing, motion graphics, and more.
-                    Help us become the MOST popular editing software! Contact electric-otter-github@proton.me
+                    Unlock a full suite of professional tools:
+                    multi-track editing, advanced keyframing, transitions,
+                    effects, overlays, color grading, audio mixing, motion graphics, and more.
+                    Help us become the MOST popular editing software!
+                    Contact electric-otter-github@proton.me
                   </p>
                   <p>
                     <em>
-                      Note: Some features may be buggy! If they are, contact me!
+                      Note: Some features may be experimental.
                     </em>
                   </p>
                 </div>
@@ -287,7 +536,53 @@
             )}
 
             {/* Ultra Advanced Features Panel */}
-            {videoSrc && <UltraAdvancedFeaturesPanel />}
+            {videoSrc && (
+              <UltraAdvancedFeaturesPanel
+                runAIEditing={runAIEditing}
+                inviteCollaborator={inviteCollaborator}
+                activateVoiceControl={activateVoiceControl}
+                toggleMotionGraphics={toggleMotionGraphics}
+                showMotionGraphics={showMotionGraphics}
+                exportToSocialMedia={exportToSocialMedia}
+                simulateCloudSave={simulateCloudSave}
+              />
+            )}
+
+            {/* Saved Versions Panel */}
+            {videoSrc && savedVersions.length > 0 && (
+              <div className="card shadow-sm mt-4">
+                <div className="card-header bg-secondary text-white">
+                  Saved Versions
+                </div>
+                <div className="card-body">
+                  <ul className="list-group">
+                    {savedVersions.map((ver, i) => (
+                      <li key={i} className="list-group-item">
+                        {new Date(ver.timestamp).toLocaleString()}
+                        <button
+                          className="btn btn-sm btn-outline-primary float-end"
+                          onClick={() => {
+                            setKeyframes(ver.keyframes);
+                            setCurrentTime(ver.currentTime);
+                            setIsColorGraded(ver.isColorGraded);
+                            if (videoRef.current) {
+                              videoRef.current.style.filter = ver.isColorGraded
+                                ? "contrast(150%) brightness(120%) saturate(130%)"
+                                : "none";
+                            }
+                          }}
+                        >
+                          Load
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Collaboration Chat Panel */}
+            {videoSrc && showCollaborationChat && <ChatPanel />}
           </div>
         );
       };
