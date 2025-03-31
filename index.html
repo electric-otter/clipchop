@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ClipChop - Next-Gen Video Editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap CSS CDN -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Bundle JS CDN (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- React & ReactDOM CDN (development versions) -->
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+
+    <!-- Babel for in-browser JSX transpilation -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      .timeline {
+        position: relative;
+        height: 50px;
+        background: #e9ecef;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      .keyframe-marker {
+        position: absolute;
+        width: 4px;
+        height: 100%;
+        background: #0d6efd;
+      }
+      .upload-area {
+        background-color: #f8f9fa;
+        border: 2px dashed #6c757d;
+        text-align: center;
+        padding: 2rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .upload-area.dragover {
+        background-color: #e2e6ea;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script type="text/babel">
+      const { useState, useRef } = React;
+
+      const VideoEditor = () => {
+        const [videoSrc, setVideoSrc] = useState(null);
+        const [keyframes, setKeyframes] = useState([]);
+        const [currentTime, setCurrentTime] = useState(0);
+        const [duration, setDuration] = useState(300);
+        const [dragOver, setDragOver] = useState(false);
+
+        const videoRef = useRef(null);
+        const fileInputRef = useRef(null);
+
+        // Load the video file and reset the editor state.
+        const loadVideoFile = (file) => {
+          const url = URL.createObjectURL(file);
+          setVideoSrc(url);
+          setKeyframes([]); // clear keyframes on new video load
+          setCurrentTime(0);
+        };
+
+        // Triggered when a file is dropped or selected.
+        const onDrop = (e) => {
+          e.preventDefault();
+          setDragOver(false);
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            loadVideoFile(e.dataTransfer.files[0]);
+          }
+        };
+
+        const onDragOver = (e) => {
+          e.preventDefault();
+          setDragOver(true);
+        };
+
+        const onDragLeave = (e) => {
+          e.preventDefault();
+          setDragOver(false);
+        };
+
+        const onFileChange = (e) => {
+          if (e.target.files && e.target.files[0]) {
+            loadVideoFile(e.target.files[0]);
+          }
+        };
+
+        const onLoadedMetadata = () => {
+          if (videoRef.current) {
+            setDuration(videoRef.current.duration);
+          }
+        };
+
+        // Update the video current time based on timeline slider movement.
+        const onSliderChange = (e) => {
+          const time = parseFloat(e.target.value);
+          setCurrentTime(time);
+          if (videoRef.current) {
+            videoRef.current.currentTime = time;
+          }
+        };
+
+        // Add a keyframe at the current time.
+        const addKeyframe = () => {
+          setKeyframes([...keyframes, currentTime]);
+        };
+
+        const renderKeyframeMarkers = () => {
+          return keyframes.map((time, index) => {
+            const leftPercent = (time / duration) * 100;
+            return (
+              <div
+                key={index}
+                className="keyframe-marker"
+                style={{ left: `${leftPercent}%` }}
+                title={`Keyframe at ${time.toFixed(2)} s`}
+              ></div>
+            );
+          });
+        };
+
+        return (
+          <div className="container my-4">
+            <h1 className="mb-4 text-center">PremiereX - Next-Gen Video Editor</h1>
+
+            {/* Drag & Drop Upload Area */}
+            <div
+              className="card mb-4 shadow-sm"
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current.click()}
+            >
+              <div className={`card-body upload-area ${dragOver ? "dragover" : ""}`}>
+                <h5 className="card-title">Drag & Drop Video File Here</h5>
+                <p className="card-text">Or click to browse files</p>
+                <input
+                  type="file"
+                  accept="video/*"
+                  ref={fileInputRef}
+                  onChange={onFileChange}
+                  style={{ display: "none" }}
+                />
+              </div>
+            </div>
+
+            {/* Video Preview Section */}
+            {videoSrc ? (
+              <div className="card mb-4 shadow-sm">
+                <div className="card-header bg-primary text-white">Video Preview</div>
+                <div className="card-body">
+                  <video
+                    ref={videoRef}
+                    src={videoSrc}
+                    controls
+                    width="100%"
+                    onLoadedMetadata={onLoadedMetadata}
+                    style={{ borderRadius: "5px" }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            ) : (
+              <div className="alert alert-info">
+                Please upload a video file to begin editing.
+              </div>
+            )}
+
+            {/* Timeline & Keyframing Tools */}
+            {videoSrc && (
+              <div className="card mb-4 shadow-sm">
+                <div className="card-header bg-secondary text-white">
+                  Timeline &amp; Keyframing Tools
+                </div>
+                <div className="card-body">
+                  <div className="mb-3">
+                    <label htmlFor="timelineSlider" className="form-label">
+                      Timeline (seconds)
+                    </label>
+                    <input
+                      type="range"
+                      className="form-range"
+                      id="timelineSlider"
+                      min="0"
+                      max={duration}
+                      step="0.1"
+                      value={currentTime}
+                      onChange={onSliderChange}
+                    />
+                    <div>Current Time: {currentTime.toFixed(2)} s</div>
+                  </div>
+
+                  {/* Timeline visualization with keyframe markers */}
+                  <div className="timeline mb-3">{renderKeyframeMarkers()}</div>
+
+                  <button className="btn btn-primary" onClick={addKeyframe}>
+                    Add Keyframe
+                  </button>
+
+                  {keyframes.length > 0 && (
+                    <div className="mt-3">
+                      <h5>Keyframes:</h5>
+                      <ul className="list-group">
+                        {keyframes.map((time, index) => (
+                          <li key={index} className="list-group-item">
+                            Keyframe {index + 1}: {time.toFixed(2)} s
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Advanced Editing Panel */}
+            {videoSrc && (
+              <div className="card shadow-sm">
+                <div className="card-header bg-dark text-white">
+                  Advanced Editing Panel
+                </div>
+                <div className="card-body">
+                  <p>
+                    Unlock a full suite of professional tools: multi-track editing,
+                    advanced keyframing, transitions, effects, overlays, color grading,
+                    audio mixing, motion graphics, and more. Help us become the MOST popular editing software! Contact electric-otter-github@proton.me
+                  </p>
+                  <p>
+                    <em>
+                      Note: Some features may be buggy! If they are, contact me!
+                    </em>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      ReactDOM.render(<VideoEditor />, document.getElementById("app"));
+    </script>
+  </body>
+</html>
